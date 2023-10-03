@@ -11,13 +11,12 @@ use wgpu::util::DeviceExt;
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
     position: [f32; 2],
-    diff: [f32; 2],
-    actual: [f32; 2],
+    clip: [f32; 2],
 }
 
 impl Vertex {
-    const ATTRIBS: [wgpu::VertexAttribute; 3] =
-        wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2, 2 => Float32x2];
+    const ATTRIBS: [wgpu::VertexAttribute; 2] =
+        wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2];
 
     fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         use std::mem;
@@ -33,30 +32,25 @@ impl Vertex {
 // lib.rs
 const VERTICES: &[Vertex; 4] = &[
     Vertex {
-        position: [0.0, 0.0],
-        diff: [-1.0, -1.0],
-        actual: [-1.0, -1.0],
+        position: [-1.0, -1.0],
+        clip: [-1.0, -1.0],
     },
     Vertex {
-        position: [0.0, 0.0],
-        diff: [-1.0, 1.0],
-        actual: [-1.0, 1.0],
+        position: [-1.0, 1.0],
+        clip: [-1.0, 1.0],
     },
     Vertex {
-        position: [0.0, 0.0],
-        diff: [1.0, -1.0],
-        actual: [1.0, -1.0],
+        position: [1.0, -1.0],
+        clip: [1.0, -1.0],
     },
     Vertex {
-        position: [0.0, 0.0],
-        diff: [1.0, 1.0],
-        actual: [1.0, 1.0],
+        position: [1.0, 1.0],
+        clip: [1.0, 1.0],
     },
 ];
 const INDICES: &[u16] = &[2, 1, 0, 3, 1, 2];
 
 struct Bound {
-    closest: [f32; 2],
     mid: [f32; 2],
     scale: f32,
     vertex_buffer: wgpu::Buffer,
@@ -77,29 +71,24 @@ impl Bound {
             _ => return,
         }
 
-        let position = self.closest;
-        let diff = [self.mid[0] - position[0], self.mid[1] - position[1]];
+        let mid = self.mid;
 
         let buff = &[
             Vertex {
-                position,
-                diff: [diff[0] - self.scale, diff[1] - self.scale],
-                actual: [-1.0, -1.0],
+                position: [mid[0] - self.scale, mid[1] - self.scale],
+                clip: [-1.0, -1.0],
             },
             Vertex {
-                position,
-                diff: [diff[0] - self.scale, diff[1] + self.scale],
-                actual: [-1.0, 1.0],
+                position: [mid[0] - self.scale, mid[1] + self.scale],
+                clip: [-1.0, 1.0],
             },
             Vertex {
-                position,
-                diff: [diff[0] + self.scale, diff[1] - self.scale],
-                actual: [1.0, -1.0],
+                position: [mid[0] + self.scale, mid[1] - self.scale],
+                clip: [1.0, -1.0],
             },
             Vertex {
-                position,
-                diff: [diff[0] + self.scale, diff[1] + self.scale],
-                actual: [1.0, 1.0],
+                position: [mid[0] + self.scale, mid[1] + self.scale],
+                clip: [1.0, 1.0],
             },
         ];
 
@@ -114,10 +103,10 @@ impl Bound {
         self.mid[0] += amt[0] * self.scale;
         self.mid[1] += amt[1] * self.scale;
         //dbg!(self.mid);
-        mandel(self.mid);
+        //mandel(self.mid);
     }
 }
-
+/*
 fn mandel(c: [f32; 2]) {
     let mut z = [0.0; 2];
     for _ in 0..200 {
@@ -125,7 +114,7 @@ fn mandel(c: [f32; 2]) {
         z = [z[0] * z[0] - z[1] * z[1], 2. * z[0] * z[1]];
         z = [z[0] + c[0], z[1] + c[1]];
     }
-}
+}*/
 
 struct State {
     surface: wgpu::Surface,
@@ -280,7 +269,6 @@ impl State {
             num_indices,
             bound: Bound {
                 mid: [0.0, 0.0],
-                closest: [0.0, 0.1],
                 scale: 1.,
                 vertex_buffer,
             },
